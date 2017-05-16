@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-require 'pry'
-require 'benchmark'
-
 class PhoneParser
   attr_reader :matches
   MAX_PHONE_NUMBER_LENGTH = 10
@@ -25,6 +22,7 @@ class PhoneParser
   end
 
   def find_matches(phone)
+    @matches = []
     # simple digits-only validation
     phone = phone.to_i.to_s
     @current_phone_length = phone.length
@@ -32,7 +30,7 @@ class PhoneParser
     # select all possible letters depends on given phone number
     all_letters = phone.chars.map { |digit| LETTERS_MAP[digit] }
     # find next words recursively
-    find_next_word(all_letters).inspect
+    find_next_word(all_letters)
   end
 
   private
@@ -61,14 +59,14 @@ class PhoneParser
       next if i - start_from < WORD_MIN_LENGTH - 1
       current_possible_letters = all_letters.dup
 
-      # remove unnecessary letters(those are not present in dictionary) from all possible letters
+      # remove unnecessary letters(those are not present in dictionary) from all_possible letters
       0.upto(i - start_from) do |n|
         letters_from_dictionary = @dictionary[(i + 1) - start_from]&.map { |word| word[n] }&.uniq
-        current_possible_letters[n] = all_letters[n].select { |letter| letters_from_dictionary&.include?(letter) }
+        current_possible_letters[start_from + n] = all_letters[start_from + n]
+                                                   .select { |letter| letters_from_dictionary&.include?(letter) }
       end
       # create all possible words with given letters
       words = current_possible_letters[start_from].product(*current_possible_letters[(start_from + 1)..i]).map(&:join)
-
       words.each do |word|
         # skip if the word is not in a dictionary
         next if @dictionary[(i + 1) - start_from].bsearch { |n| word <=> n }.nil?
@@ -81,15 +79,5 @@ class PhoneParser
       end
     end
     @matches
-  end
-end
-
-parser = PhoneParser.new('./full_dictionary.txt')
-
-Benchmark.bm do |x|
-  x.report do
-    # puts parser.find_matches(2282668687)
-    puts parser.find_matches(6686787825)
-    # puts parser.find_matches(668678)
   end
 end
