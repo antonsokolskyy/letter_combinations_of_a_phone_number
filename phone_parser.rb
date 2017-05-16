@@ -24,6 +24,7 @@ class PhoneParser
         end
       end
     end
+    @dictionary.keys.each { |k| @dictionary[k].sort! }
   end
 
   def find_matches(phone)
@@ -31,14 +32,19 @@ class PhoneParser
     matches = []
     phone = phone.to_s
     # select all possible letters depends on given phone number
-    possible_letters = phone.chars.map { |digit| LETTERS_MAP[digit] }
+    all_letters = phone.chars.map { |digit| LETTERS_MAP[digit] }
     
-    2.upto(possible_letters.size) do |i|
-      letters_on_i_position = @dictionary[i].map { |word| word[-1] }.uniq
-      possible_letters[i - 1] = possible_letters[i - 1].reject { |letter| !letters_on_i_position.include?(letter) }
+    1.upto(all_letters.size - 1) do |i|
+      current_possible_letters = all_letters.dup
+      0.upto(i) do |n|
+        letters_from_dictionary = @dictionary[i + 1].map { |word| word[n] }.uniq
+        current_possible_letters[n] = all_letters[n].reject { |letter| !letters_from_dictionary.include?(letter) }
+      end
 
-      words = possible_letters[0].product(*possible_letters[1..(i - 1)]).map(&:join)
-      words.reject! { |word| !@dictionary[i].include?(word) }
+      words = current_possible_letters[0].product(*current_possible_letters[1..i]).map(&:join)
+      words.reject! do |word|
+        @dictionary[i + 1].bsearch { |n| word <=> n }.nil?
+      end
       # binding.pry
     end
     # binding.pry
@@ -54,6 +60,6 @@ parser = PhoneParser.new
 
 Benchmark.bm do |x|
   x.report do
-    parser.find_matches(2282668687)
+    parser.find_matches(2257222227)
   end
 end
